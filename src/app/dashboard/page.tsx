@@ -4,7 +4,6 @@ export const dynamic = "force-dynamic"
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-const supabase = (await import("@/lib/supabaseClient")).supabase
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog } from "@headlessui/react"
@@ -39,24 +38,24 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const getModels = async () => {
-      const supabase = (await import("@/lib/supabaseClient")).supabase
+      const { supabase } = await import("@/lib/supabaseClient")
       const fakeUserId = "61a09725-67fd-47c1-b85a-f2b23de27294"
       setUserId(fakeUserId)
-  
+
       const { data, error } = await supabase
         .from("models")
         .select("*")
         .eq("agency_id", fakeUserId)
-  
+
       if (error) {
         console.error("Error loading models:", error.message)
       } else {
         setModels(data)
       }
-  
+
       setLoading(false)
     }
-  
+
     getModels()
   }, [])
 
@@ -69,6 +68,8 @@ export default function DashboardPage() {
 
   const addOrEditModel = async () => {
     if (!userId) return
+
+    const { supabase } = await import("@/lib/supabaseClient")
 
     let image_url = typeof newModel.image === "string" ? newModel.image : ""
 
@@ -142,6 +143,7 @@ export default function DashboardPage() {
   }
 
   const handleDelete = async (id: number) => {
+    const { supabase } = await import("@/lib/supabaseClient")
     const { error } = await supabase.from("models").delete().eq("id", id)
     if (error) {
       console.error("Delete error:", error.message)
@@ -187,15 +189,15 @@ export default function DashboardPage() {
                 <div className="flex justify-between items-center">
                   <h2 className="text-xl font-bold text-gray-800">{model.name}</h2>
                   <div className="text-sm space-x-2">
-                    <button 
-                      onClick={() => handleEdit(model)} 
-                      title="Edit" 
+                    <button
+                      onClick={() => handleEdit(model)}
+                      title="Edit"
                       className="hover:scale-110 transition-transform duration-200"
                     >
                       ✏️
-                    </button> 
-                    <button 
-                      onClick={() => handleDelete(model.id)} 
+                    </button>
+                    <button
+                      onClick={() => handleDelete(model.id)}
                       title="Delete"
                       className="hover:scale-110 transition-transform duration-200"
                     >
