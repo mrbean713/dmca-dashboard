@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic"
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { supabase } from "@/lib/supabaseClient"
+const supabase = (await import("@/lib/supabaseClient")).supabase
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog } from "@headlessui/react"
@@ -38,24 +38,25 @@ export default function DashboardPage() {
   })
 
   useEffect(() => {
-    const fakeUserId = "61a09725-67fd-47c1-b85a-f2b23de27294"
-    setUserId(fakeUserId)
-
     const getModels = async () => {
+      const supabase = (await import("@/lib/supabaseClient")).supabase
+      const fakeUserId = "61a09725-67fd-47c1-b85a-f2b23de27294"
+      setUserId(fakeUserId)
+  
       const { data, error } = await supabase
         .from("models")
         .select("*")
         .eq("agency_id", fakeUserId)
-
+  
       if (error) {
         console.error("Error loading models:", error.message)
       } else {
         setModels(data)
       }
-
+  
       setLoading(false)
     }
-
+  
     getModels()
   }, [])
 
