@@ -19,11 +19,13 @@ export default function ModelAnalysisPage() {
   const params = useParams()
   const modelId = params.id as string
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [model, setModel] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [checkingStatus, setCheckingStatus] = useState<string[]>([])
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [detectedImages, setDetectedImages] = useState<any[]>([])
-  const [scanning, setScanning] = useState(false)
+  // const [scanning, setScanning] = useState(false)
 
   useEffect(() => {
     const fetchModel = async () => {
@@ -46,7 +48,7 @@ export default function ModelAnalysisPage() {
   }, [modelId])
 
   const performDMCAAnalysis = async () => {
-    setScanning(true)
+    // setScanning(true)
     setCheckingStatus(["Performing DMCA Analysis..."])
     for (const site of websitesToCheck) {
       await new Promise((r) => setTimeout(r, 1000))
