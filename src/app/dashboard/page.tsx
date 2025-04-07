@@ -15,6 +15,12 @@ type Model = {
   image_url: string
 }
 
+type NewModel = {
+  name: string
+  description: string
+  image: string | File
+}
+
 export default function DashboardPage() {
   const router = useRouter()
   const [models, setModels] = useState<Model[]>([])
@@ -23,10 +29,10 @@ export default function DashboardPage() {
   const [isOpen, setIsOpen] = useState(false)
   const [editingModelId, setEditingModelId] = useState<number | null>(null)
 
-  const [newModel, setNewModel] = useState({
+  const [newModel, setNewModel] = useState<NewModel>({
     name: "",
     description: "",
-    image: "" as string | File,
+    image: "",
   })
 
   useEffect(() => {
@@ -63,10 +69,9 @@ export default function DashboardPage() {
 
     let image_url = typeof newModel.image === "string" ? newModel.image : ""
 
-    // Upload new image if it's a file
     if (typeof newModel.image === "object") {
       const filePath = `models/${Date.now()}_${newModel.image.name}`
-      const { data: storageData, error: storageError } = await supabase.storage
+      const { error: storageError } = await supabase.storage
         .from("profile-pics")
         .upload(filePath, newModel.image)
 
@@ -118,7 +123,6 @@ export default function DashboardPage() {
       setModels((prev) => [...prev, ...data])
     }
 
-    // Reset form
     setNewModel({ name: "", description: "", image: "" })
     setEditingModelId(null)
     setIsOpen(false)
