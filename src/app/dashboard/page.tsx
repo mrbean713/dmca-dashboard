@@ -175,7 +175,7 @@ export default function DashboardPage() {
         {models.map((model) => (
           <div
             key={model.id}
-            className="bg-white rounded-2xl shadow-lg overflow-hidden transition-transform hover:scale-105"
+            className="bg-white rounded-2xl shadow-lg overflow-hidden"
           >
             <Image
               src={model.image_url || "/placeholder.jpg"}
