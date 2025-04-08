@@ -41,3 +41,9 @@ yarn-error.log*
 next-env.d.ts
 
 .env.local
+src/lib/scraper.ts
+src/lib/testScraper.ts
+src/lib/gmailSender.ts
+src/lib/googleReport.ts
+
+.env

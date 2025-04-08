@@ -4,28 +4,18 @@ import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabaseClient"
 import Image from "next/image"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
-
-const websitesToCheck = [
-  "reddit.com",
-  "xvideos.com",
-  "piratesnapz.cc",
-  "onlyfansleaks.net",
-  "tumblr.com",
-]
 
 export default function ModelAnalysisPage() {
   const router = useRouter()
   const params = useParams()
   const modelId = params.id as string
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [model, setModel] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [checkingStatus, setCheckingStatus] = useState<string[]>([])
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [detectedImages, setDetectedImages] = useState<any[]>([])
-  // const [scanning, setScanning] = useState(false)
 
   useEffect(() => {
     const fetchModel = async () => {
@@ -34,53 +24,66 @@ export default function ModelAnalysisPage() {
         .select("*")
         .eq("id", modelId)
         .single()
-
-      if (error) {
-        console.error("Error fetching model:", error.message)
-      } else {
-        setModel(data)
-      }
-
+      if (error) console.error("Error fetching model:", error.message)
+      else setModel(data)
       setLoading(false)
     }
+
+    const cached = localStorage.getItem(`scan-${modelId}`)
+    if (cached) setDetectedImages(JSON.parse(cached))
 
     fetchModel()
   }, [modelId])
 
   const performDMCAAnalysis = async () => {
-    // setScanning(true)
+    if (!model?.name) return
     setCheckingStatus(["Performing DMCA Analysis..."])
-    for (const site of websitesToCheck) {
-      await new Promise((r) => setTimeout(r, 1000))
-      setCheckingStatus((prev) => [...prev, `Checking ${site}...`])
+    setDetectedImages([])
+
+    try {
+      const res = await fetch("https://dmca-backend.onrender.com/scan-leaks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ modelName: model.name }),
+      })      
+      const data = await res.json()
+      if (data.success) {
+        setDetectedImages(data.foundLinks)
+        localStorage.setItem(`scan-${modelId}`, JSON.stringify(data.foundLinks))
+        setCheckingStatus((prev) => [...prev, "Scan complete."])
+      } else {
+        setCheckingStatus((prev) => [...prev, "Scan failed."])
+      }
+    } catch (err) {
+      console.error("Scan request error:", err)
+      setCheckingStatus((prev) => [...prev, "Scan failed due to error."])
     }
-
-    // Simulated results
-    const results = [
-      {
-        url: "https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg",
-        site: "reddit.com",
-      },
-      {
-        url: "https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg",
-        site: "xvideos.com",
-      },
-      {
-        url: "https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg",
-        site: "piratesnapz.cc",
-      },
-    ]
-
-    setDetectedImages(results)
   }
 
-  if (loading || !model) {
-    return <div className="text-white p-8">Loading...</div>
+  const resetDMCAAnalysis = async () => {
+    if (!modelId) return
+
+    localStorage.removeItem(`scan-${modelId}`)
+
+    await fetch("/api/delete-screenshots", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ modelName: model?.name }),
+    })
+
+    router.refresh()
   }
+
+  const groupedBySite: Record<string, any[]> = detectedImages.reduce((acc, img) => {
+    acc[img.site] = acc[img.site] || []
+    acc[img.site].push(img)
+    return acc
+  }, {})
+
+  if (loading || !model) return <div className="text-white p-8">Loading...</div>
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-700 p-10 text-white">
-      {/* Home Button */}
       <button
         onClick={() => router.push("/dashboard")}
         className="text-white bg-gray-800 hover:bg-gray-700 font-semibold py-2 px-4 rounded mb-6"
@@ -88,9 +91,7 @@ export default function ModelAnalysisPage() {
         ← Home
       </button>
 
-      {/* Header Info */}
       <div className="flex gap-10">
-        {/* Left Image */}
         <div className="w-1/2">
           <Image
             src={model.image_url}
@@ -101,7 +102,6 @@ export default function ModelAnalysisPage() {
           />
         </div>
 
-        {/* Right Info */}
         <div className="w-1/2 space-y-4">
           <h1 className="text-4xl font-bold">{model.name}</h1>
           <p className="text-gray-300">{model.description}</p>
@@ -110,12 +110,14 @@ export default function ModelAnalysisPage() {
             <p className="text-2xl font-bold text-green-400">8 takedowns</p>
           </div>
 
-          <Button
-            className="bg-red-600 hover:bg-red-700 text-white font-semibold"
-            onClick={performDMCAAnalysis}
-          >
-            Perform DMCA Analysis
-          </Button>
+          <div className="flex gap-4">
+            <Button onClick={performDMCAAnalysis} className="bg-red-600 hover:bg-red-700">
+              Perform DMCA Analysis
+            </Button>
+            <Button onClick={resetDMCAAnalysis} className="bg-yellow-600 hover:bg-yellow-700 text-white">
+              🔄 Reset DMCA Scan
+            </Button>
+          </div>
 
           <div className="mt-4 space-y-1 text-sm text-gray-400">
             {checkingStatus.map((msg, idx) => (
@@ -125,37 +127,23 @@ export default function ModelAnalysisPage() {
         </div>
       </div>
 
-      {/* Detected Content Grid */}
-      {detectedImages.length > 0 && (
+      {Object.keys(groupedBySite).length > 0 && (
         <div className="mt-12">
-          <h2 className="text-3xl font-bold text-white text-center mb-8">
-            Detected Content
-          </h2>
-
-          <div className="grid grid-cols-3 gap-6">
-            {Array.from({ length: 3 }).map((_, colIdx) => (
-              <div className="flex flex-col gap-6" key={colIdx}>
-                {detectedImages
-                  .filter((_, i) => i % 3 === colIdx)
-                  .map((img, idx) => (
-                    <div
-                      key={idx}
-                      className="bg-gray-800 p-4 rounded-lg flex flex-col items-center"
-                    >
-                      <Image
-                        src={img.url}
-                        alt={`Detected content ${idx + 1}`}
-                        width={300}
-                        height={200}
-                        className="rounded"
-                      />
-                      <p className="text-white mt-2">{img.site}</p>
-                      <button className="mt-2 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition">
-                        Send DMCA Report
-                      </button>
-                    </div>
-                  ))}
-              </div>
+          <h2 className="text-3xl font-bold text-white text-center mb-8">Detected Content</h2>
+          <div className="grid grid-cols-3 gap-8">
+            {Object.entries(groupedBySite).map(([site, images]) => (
+              <Link key={site} href={`/dashboard/model/${modelId}/${site}`}>
+                <div className="bg-gray-800 rounded-lg p-4 hover:bg-gray-700 cursor-pointer transition">
+                  <Image
+                    src={images[0].url}
+                    alt="screenshot preview"
+                    width={400}
+                    height={300}
+                    className="rounded-lg w-full h-auto"
+                  />
+                  <p className="text-center text-white font-bold mt-4 text-xl">{site}</p>
+                </div>
+              </Link>
             ))}
           </div>
         </div>
