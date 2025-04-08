@@ -20,7 +20,7 @@ export default function DomainPage() {
     setTimeout(() => {
       setReportSent(true)
       setLoading(false)
-    }, 1000) // Simulate sending delay
+    }, 1000)
   }
 
   return (
